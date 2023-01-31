@@ -97,6 +97,10 @@ int heladera = 25;
 int ventilador = 90;
 int humedadsuelo = 20;
 int hsluz = 13;
+volatile boolean estadoHeladera = false;
+unsigned long tiempoEncendido = 0;  // variable valor de tiempo de encendido de la heladera
+unsigned long tiempoApagado = 0;  // variable de tiempo apagado de la heladera
+
 
 //////////////VARIABLES PARA ENCENDIDO Y APAGADO DE LA LUZ DE LA PANTALLA//////////////////
 
@@ -136,7 +140,7 @@ void setup(){
   pinMode(LUZ, OUTPUT);
   pinMode(RIEGO, OUTPUT); //Riego como salida
   digitalWrite (vcc, HIGH);// Le doy corriente al sensor dht22.
-  digitalWrite (RIEGO, HIGH);
+  digitalWrite (RIEGO, LOW);
   digitalWrite (HELADERA, LOW);
   digitalWrite (VENTILADOR, LOW);
   digitalWrite (LUZ, LOW);
@@ -163,8 +167,8 @@ void setup(){
 
 ///////////////////////ACTIVAR PARA ACTUALIZAR HORA DEL RELOJ RTC////////////////////////
 
-   //Le doy fecha y hora al reloj rtc, es necesario hacerlo una sola vez
-  //rtc.adjust(DateTime(__DATE__, __TIME__ ));
+//   Le doy fecha y hora al reloj rtc, es necesario hacerlo una sola vez
+  rtc.adjust(DateTime(__DATE__, __TIME__ ));
   
 /////////////////INICIALIZACIÓN DE PANTALLA LCD Y MENSAJES DE BIENVENIDA/////////////////
   
@@ -222,15 +226,15 @@ ANTERIOR = POSICION;
 if (fecha.second()== 1){
   
     TEMPERATURA = dht.readTemperature();  // obtencion de valor de temperatura 
-    HUMEDADSUELO = map(SUELO, 700, 200, 0, 99); //Creo la variable HUMEDADSUELO transformando los valores leidos
-    SUELO = analogRead(A3);// Leo el sensor de HUMEDAD DE SUELO. 
-     
      }
                 
 /////////////////////////////SENSADO DE HUMEDAD ATMOSFÉRICA////////////////////////////
-    
+   HUMEDADSUELO = map(SUELO, 580, 290, 0, 99); //Creo la variable HUMEDADSUELO transformando los valores leidos
+   SUELO = analogRead(A3); // Leo el sensor de HUMEDAD DE SUELO.  
    HUMEDAD = dht.readHumidity();
 
+   Serial.println(SUELO);
+   Serial.println(HUMEDADSUELO);
 ///////////////////////////////// PANTALLA LCD////////////////////////////////////////
 
         /////Para mostrarlo la temperatura leída por el sensor
@@ -421,13 +425,25 @@ if (fecha.second()== 1){
         
  ////////////////////////////CONTROL DE TEMPERATURA//////////////////////////////
 
+   if (TEMPERATURA > heladera){
+    digitalWrite(HELADERA, HIGH);
+   } else (digitalWrite(HELADERA,LOW));
 
- if (TEMPERATURA > heladera){
-   digitalWrite (HELADERA, HIGH);
- } else { digitalWrite (HELADERA, LOW);
-  
- }   
- 
+
+ // if (TEMPERATURA > heladera){
+ //         if((millis() - tiempoEncendido >= 300000)&&estadoHeladera == true){  // tiempo de apagado
+ //        estadoHeladera = false;
+ //         digitalWrite (HELADERA, HIGH);
+ //         tiempoApagado = millis();  // guarda el tiempo actual para comenzar a contar el tiempo de apagado
+ //       }   
+ //         if ((millis() - tiempoApagado >= 1500000) && estadoHeladera == false) { // tiempo de prendido
+ //        estadoHeladera = true;   
+ //          digitalWrite (HELADERA, LOW);
+ //          tiempoEncendido = millis();
+ //         }
+        
+ //}
+ //          else (digitalWrite (HELADERA, LOW));  
  ///////////////////////////CONTROL DE LA HUMEDAD ATMOSFÉRICA//////////////////
        
      if (HUMEDAD > ventilador) { digitalWrite (VENTILADOR, HIGH);
@@ -477,6 +493,22 @@ if (fecha.hour()> HORASLUZ){
   //        digitalWrite (RIEGO, HIGH);
     //      } else {digitalWrite (RIEGO, LOW);
       //  }
+
+  if (HUMEDADSUELO < humedadsuelo){
+          if((millis() - tiempoEncendido >= 5000)&&estadoHeladera == true){  // tiempo de apagado
+         estadoHeladera = false;
+          digitalWrite (RIEGO, HIGH);
+          tiempoApagado = millis();  // guarda el tiempo actual para comenzar a contar el tiempo de apagado
+        }   
+          if ((millis() - tiempoApagado >= 3000) && estadoHeladera == false) { // tiempo de prendido
+         estadoHeladera = true;   
+           digitalWrite (RIEGO, LOW);
+           tiempoEncendido = millis();
+          }
+        
+ }
+           else (digitalWrite (RIEGO, LOW));  
+
 
 }
 
